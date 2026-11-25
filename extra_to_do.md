@@ -9,7 +9,7 @@ Técnicas vistas em aula que **não alteram a base oficial nem entram no pipelin
 ## 1. Outliers — Comparativo Completo da Aula
 *Referência: [Pos__Identificação_outlier.ipynb](file:///home/lucas/Projects/cd_g2/class_material/Pos__Identificação_outlier.ipynb).*
 
-- [ ] Acrescentar o cálculo de **MAD (`mediana + 3×MAD`)** na tabela univariada.
+- [ ] Montar tabela univariada completa sobre `pedido_valor_total` e `qtd_unidades` (`3.003` pedidos) comparando **Quantis (`90%/95%/99%`)**, **IQR (`1.5×IQR`)**, **Tukey Extremo (`3×IQR`)**, **Z-Score (`média ± 3σ`)** e **MAD (`mediana + 3×MAD`)**.
 - [ ] Rodar **`DBSCAN`** (estrutural) e **`LocalOutlierFactor` / LOF** (local) sobre `(pedido_valor_total, qtd_unidades)` escalonados e montar o painel de 3 gráficos lado a lado com **`IsolationForest`** (global).
 - [ ] Incluir nota curta explicando as outras duas estratégias pós-identificação (**Estratégia 2 — Capping/Winsorization** e **Estratégia 4 — Manutenção com flag**) e por que não foram escolhidas para os fechamentos de caixa.
 

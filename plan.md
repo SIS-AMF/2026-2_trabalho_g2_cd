@@ -27,8 +27,8 @@ O trabalho reproduz no nosso dataset exatamente o fluxo ensinado nos materiais d
 
 | Decisão | Definição Escolhida | Justificativa |
 | :--- | :--- | :--- |
-| **Problema** | **Classificação Binária** do Meio de Pagamento no nível do pedido | Objetivo simples, usa **100% dos pedidos de varejo** (`2.984`) sem precisar filtrar itens da cesta, e apoia o planejamento de troco, maquininhas e internet nas feiras. |
-| **Alvo (`y`)** | **`pagamento_digital`** (`1` = `Cartão` ou `PIX`; `0` = `Dinheiro`) | Classes equilibradas (**40,4% Digital** vs **59,6% Dinheiro**), evitando distorções de desbalanceamento extremo e mantendo a avaliação (ROC, Matriz de Confusão e SHAP) direta e clara. |
+| **Problema** | **Classificação Binária** do Meio de Pagamento no nível do pedido | Objetivo simples, usa todos os pedidos pagos válidos (`2.989`) sem precisar filtrar itens da cesta, e apoia o planejamento de troco, maquininhas e internet nas feiras. |
+| **Alvo (`y`)** | **`pagamento_digital`** (`1` = `Cartão` ou `PIX`; `0` = `Dinheiro`) | Classes equilibradas (**40,38% Digital** vs **59,62% Dinheiro**), evitando distorções de desbalanceamento extremo e mantendo a avaliação (ROC, Matriz de Confusão e SHAP) direta e clara. |
 | **Feature `evento_nome`** | **Incluída em `X`** (unificando caixas da *Festa do Moranguinho* e agrupando feiras raras `< 5%`) | Forte preditor real (de 0%–17% digital em feiras rurais até 52%–56% em grandes feiras) e permite demonstrar agrupamento de raras, `OneHotEncoder` e `TargetEncoder`. |
 | **Redundâncias Temporais** | Remover **`mes`** e **`dia_semana`** bruto do modelo final | No dataset cada feira ocorre em praticamente 1 único mês (`mes` $\approx$ `evento_nome`), e `dia_semana` tem correlação alta (`r = 0,83`) com `eh_fim_de_semana`. |
 | **Imputação (base sem nulos)** | `SimpleImputer` no `Pipeline` + **1 célula didática simulando ~5% de `NaN` numa cópia** | A base bruta tem apenas 1 nulo em colunas descartadas (`pedido_vendedor`/`item_pedido_user_id`), ficando limpa (`0` nulos). A simulação cumpre a exigência prática de `Preechimento_de_dados.ipynb` sem alterar os dados oficiais. |
@@ -85,13 +85,13 @@ Consolidar a base para **1 linha por pedido (`3.003` pedidos antes do filtro de 
 
 > **Disciplina de simplicidade:** limitar cada técnica abaixo a **1 célula curta e objetiva** (demonstrações feitas sobre cópias quando alteram dados, sem bagunçar a base oficial).
 
-1. **Detecção e Tratamento de Outliers (antes do filtro de varejo — seguindo `Pos__Identificação_outlier.ipynb`):**
-   - **Análise Univariada** em `pedido_valor_total` e `qtd_unidades` (sobre os `3.003` pedidos): comparar **Quantis (`90%/95%/99%`)**, **IQR (`1.5×IQR`) e Tukey Extremo (`3×IQR`)**, **Z-Score (`3σ`)** e **MAD (`3×MAD`)**, mostrando a diferença entre cauda natural do varejo e fechamentos extremos de caixa.
-   - **Análise Multivariada** em `(pedido_valor_total, qtd_unidades)` (com `StandardScaler` para métodos de distância/densidade): comparar lado a lado **`IsolationForest` (Global)**, **`DBSCAN` (Estrutural)** e **`LocalOutlierFactor` / LOF (Local)** — mesmo painel comparativo do notebook da aula.
-   - **Decisão Pós-Identificação (4 Estratégias da aula):**
-     - **Estratégia 1 — Remoção (*Trimming*):** aplicada aos **`19` pedidos operacionais anômalos** (`2` gratuitos com `valor_total <= 0` e `18` fechamentos consolidados de caixa de até R$ 3.693 / 565 unidades, com `1` interseção), confirmados por regra de domínio + métodos multivariados/Z-score $\rightarrow$ **`2.984` pedidos de varejo** (`40,4%` Digital / `59,6%` Dinheiro).
-     - **Estratégia 3 — Transformação (`log1p` / `PowerTransformer`):** aplicada à cauda alta legítima do varejo (pedidos reais entre R$ 55 e R$ 175 sinalizados pelo IQR `1.5×`), preservando as observações sem distorcer KNN e Regressão Logística.
-     - *(Contextualizar brevemente por que não aplicamos **Estratégia 2 — Capping/Winsorization** nem **Estratégia 4 — Manutenção pura** sobre os 19 fechamentos de caixa, já que eles não representam compras individuais de clientes.)*
+1. **Detecção e Tratamento de Outliers (antes do filtro final — seguindo `Pos__Identificação_outlier.ipynb`):**
+   - **Visualização e Análise Univariada inicial (`3.003` pedidos):** exibir `pedido_valor_total × qtd_unidades` e comparar **Quantis (`95%/99%`)**, **IQR (`1.5×IQR`)**, **Tukey Extremo (`3×IQR`)** e **Z-Score (`3σ`)**, destacando os `2` pedidos gratuitos e os fechamentos extremos de caixa.
+   - **Regra de Domínio (pedidos gratuitos):** remover `pedido_valor_total <= 0` (`2` pedidos com 100% de desconto $\rightarrow$ `3.001` pedidos pagos).
+   - **Análise Multivariada (`IsolationForest` com corte visual via `decision_function`):** rodar `IsolationForest(contamination='auto', random_state=42)` sobre `(pedido_valor_total, qtd_unidades)` escalonados nos `3.001` pedidos pagos, plotando o **histograma dos scores** e o scatterplot com corte em `score < -0.30` (12 eventos extremos, `0,40%`). *(Painel complementar com MAD, `DBSCAN` e `LOF` registrado em `extra_to_do.md`.)*
+   - **Decisão Pós-Identificação (Estratégias da aula):**
+     - **Estratégia 1 — Remoção (*Trimming*):** remover os `2` gratuitos + `12` extremos = **`14` pedidos (`0,47%` da base)** $\rightarrow$ **`2.989` pedidos** (`40,38%` Digital / `59,62%` Dinheiro).
+     - **Estratégia 3 — Transformação (`PowerTransformer`):** manter a cauda alta natural restante e suavizá-la dentro do `Pipeline`.
 2. **Imputação de Dados Ausentes (célula didática):**
    - Confirmar `0` nulos na base modelada, resumir MCAR/MAR/MNAR e simular **~5% de `NaN` em uma cópia** de `pedido_valor_total`.
    - Comparar o erro (`MAE`) entre **`SimpleImputer(strategy='median')`**, **`KNNImputer`** e **`IterativeImputer`** (MICE), espelhando o exercício de `Preechimento_de_dados.ipynb`.
@@ -104,7 +104,7 @@ Consolidar a base para **1 linha por pedido (`3.003` pedidos antes do filtro de 
 6. **Escalonamento (*Scaling*):**
    - Comparar brevemente `StandardScaler`, `MinMaxScaler` e `RobustScaler` em `pedido_valor_total` e `qtd_unidades`.
 7. **Seleção de Características:**
-   - **Multicolinearidade:** matriz de correlação (`sns.heatmap`), identificando e removendo `pedido_subtotal` ($r = 0{,}997$ com `pedido_valor_total`) e `dia_semana` bruto ($r = 0{,}83$ com `eh_fim_de_semana`).
+   - **Multicolinearidade:** matriz de correlação de **Spearman** (`sns.heatmap`, adequada à assimetria das numéricas), identificando e removendo `pedido_subtotal` ($\rho = 0{,}997$ com `pedido_valor_total`), `hora` bruta ($\rho = -0{,}945$ / $0{,}864$) e `dia_semana` bruto ($\rho = 0{,}882$ com `eh_fim_de_semana`), mantendo o par cíclico `hora_sin`/`hora_cos`.
    - **Variância Quase Nula:** aplicar `VarianceThreshold(threshold=0.01)` nas binárias, identificando e removendo **`tem_pao`** (variância `0,0030`, apenas 9 pedidos).
    - **Seleção Supervisionada (demonstrativo):** 1 célula curta com `SelectKBest(score_func=mutual_info_classif)` para ranquear a relevância univariada das features em relação a `pagamento_digital`.
 8. **Redução de Dimensionalidade (PCA):**
@@ -113,7 +113,7 @@ Consolidar a base para **1 linha por pedido (`3.003` pedidos antes do filtro de 
 ### Etapa 4 — Split Estratificado e `Pipeline` + `ColumnTransformer` (Sem *Data Leakage*)
 *Referência: `Pipeline_de_Pre_Processamento.ipynb` e `Pepeline_processaemento.ipynb` (Seção 1).*
 1. **Divisão Treino/Teste antes de qualquer `fit`/`transform`:**
-   - `train_test_split(X, y, test_size=0.20, stratify=y, random_state=42)` sobre os `2.984` pedidos (`2.387` treino / `597` teste).
+   - `train_test_split(X, y, test_size=0.20, stratify=y, random_state=42)` sobre os `2.989` pedidos (`2.391` treino / `598` teste).
 2. **Grupos de colunas por tipo de tratamento no `ColumnTransformer`:**
    - `skewed_features` (`pedido_valor_total`, `qtd_unidades`): `SimpleImputer('median')` $\rightarrow$ `PowerTransformer(method='yeo-johnson')` *(já padroniza com média 0 e desvio padrão 1 via `standardize=True`)*.
    - `numeric_features` (`qtd_itens`, `hora_sin`, `hora_cos`): `SimpleImputer('median')` $\rightarrow$ `StandardScaler()`.
@@ -174,7 +174,7 @@ Consolidar a base para **1 linha por pedido (`3.003` pedidos antes do filtro de 
 ## 6. Checklist Rápido antes da Entrega (26/11)
 
 - [ ] Dataset limpo (colunas inúteis e `qtd <= 0` removidas, textos/eventos/pagamentos padronizados, `produto_base`/`familia_produto`/`multiplicador` extraídos e reconciliação validada com erro `R$ 0,00`).
-- [ ] Base consolidada por pedido com alvo binário **`pagamento_digital`** (`1` = `Cartão`/`PIX`, `0` = `Dinheiro`) e tratamento de outliers baseado em `Pos__Identificação_outlier.ipynb` (Univariado: Quantis, IQR/Tukey `3×`, Z-score, MAD + Multivariado: `IsolationForest`, `DBSCAN`, `LOF` + *Trimming* nos `19` erros operacionais e *Transformação* na cauda alta real $\rightarrow$ `2.984` pedidos de varejo, `40,4%` Digital).
+- [ ] Base consolidada por pedido com alvo binário **`pagamento_digital`** (`1` = `Cartão`/`PIX`, `0` = `Dinheiro`) e tratamento de outliers baseado em `Pos__Identificação_outlier.ipynb` (visualização inicial + remoção de `2` gratuitos + `IsolationForest` via `decision_function < -0.30` removendo `12` extremos $\rightarrow$ `2.989` pedidos, `40,38%` Digital; cauda natural tratada com `PowerTransformer`).
 - [ ] Engenharia de recursos aplicada (`hora_sin`/`hora_cos`, `turno`, `eh_fim_de_semana`, perfil da cesta, `teve_desconto`, flags de famílias e `evento_nome`).
 - [ ] Demonstração curta (1 célula por técnica) de todo o pré-processamento da aula: outliers, imputação simulada (`SimpleImputer` vs `KNNImputer` vs `IterativeImputer`), discretização, encoding (`OneHot`, `Ordinal`, `TargetEncoder`, raras `< 5%`), assimetria, scaling, multicolinearidade (`subtotal` removido, `r = 0,997`), variância quase nula (`tem_pao` removido, var `0,003`), `SelectKBest` e PCA.
 - [ ] `train_test_split(..., stratify=y)` executado **antes** de ajustar o `Pipeline` + `ColumnTransformer` (sem redundância no `PowerTransformer` e com `sparse_output=False` para o SHAP).

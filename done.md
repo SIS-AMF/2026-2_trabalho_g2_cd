@@ -33,3 +33,20 @@
 - [x] **Criar variáveis de perfil da cesta:** `pedido_valor_total`, `pedido_subtotal`, `qtd_itens`, `qtd_unidades`, `eh_pacote`, `teve_desconto`.
 - [x] **Criar flags binárias das 6 famílias:** `tem_cuca`, `tem_rapadura`, `tem_alfajor`, `tem_amendoim_doces`, `tem_bolacha`, `tem_pao`.
 - [x] **Validar integridade da tabela consolidada (`df_pedidos`):** `3.003` pedidos únicos × `21` colunas, `0` valores nulos, notebook executado e validado de ponta a ponta.
+
+---
+
+## 3. Pré-processamento Efetivo e Tomada de Decisão (Etapa 3)
+
+- [x] **Outliers — Visualização Inicial, Regra de Domínio e `IsolationForest` (`3.003` $\rightarrow$ `2.989`):**
+  - [x] Plotada distribuição inicial (`boxplot` + scatterplot `qtd_unidades × pedido_valor_total` com escala `symlog` calibrada e ticks em reais) destacando visualmente os `2` valores zerados e os eventos extremos.
+  - [x] Removidos os `2` pedidos gratuitos (`pedido_valor_total <= 0`) por regra de domínio $\rightarrow$ `3.001` pedidos pagos.
+  - [x] Aplicado `IsolationForest(contamination='auto', random_state=42)` sobre `(pedido_valor_total, qtd_unidades)` escalonados, com histograma de `decision_function` e corte visual em `score < -0.30`, removendo `12` eventos extremos (`0,40%`, Estratégia 1 — *Trimming*) $\rightarrow$ **`df_varejo`** com **`2.989` pedidos** (`40,38%` Digital / `59,62%` Dinheiro; `14` removidos no total = `0,47%`).
+  - [x] Registrada Estratégia 3 (*Transformação*) para suavizar a cauda natural restante via `PowerTransformer`.
+- [x] **Diagnóstico de Assimetria, Escala e Categóricas (em cópia, sem *data leakage*):**
+  - [x] Comparado `skew` antes/depois e $\lambda$ do Yeo-Johnson em cópia: `pedido_valor_total` (`3,98 -> 0,00`, $\lambda = 0{,}02$) e `qtd_unidades` (`3,20 -> 0,33`, $\lambda = -1{,}18$) mapeadas para `PowerTransformer`; `qtd_itens` ($\lambda = -9{,}41$, fora de `[-5, 5]`) e `hora_sin`/`hora_cos` (coordenadas cíclicas) mapeadas para `StandardScaler`.
+  - [x] Confirmada ordem ordinal de `turno` (`['Manhã', 'Tarde', 'Noite']`) e frequência das `14` feiras em `evento_nome` (`7` principais $\ge 5\%$ e `7` raras $< 5\%$ para `min_frequency=0.05`).
+- [x] **Seleção de Variáveis (Spearman + `VarianceThreshold`):**
+  - [x] Heatmap de correlação de **Spearman** (adequado à assimetria/não-normalidade): removidas `pedido_subtotal` ($\rho = 0{,}997$), `hora` ($\rho = -0{,}945$ / $0{,}864$) e `dia_semana` ($\rho = 0{,}882$), mantendo o par cíclico complementar `hora_sin × hora_cos` ($\rho = -0{,}808$).
+  - [x] `VarianceThreshold(threshold=0.01)` nas binárias: removida `tem_pao` (`0,30%`, variância `0,0030 < 0,01`).
+- [x] **Validação da Base Selecionada (`df_model`):** `2.989` linhas × `16` colunas (`15` features + alvo `pagamento_digital`), `0` valores nulos, notebook [trabalho_g2.ipynb](file:///home/lucas/Projects/cd_g2/trabalho_g2.ipynb) executado de ponta a ponta sem erros.
