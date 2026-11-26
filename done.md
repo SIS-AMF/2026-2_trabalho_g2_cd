@@ -50,3 +50,11 @@
   - [x] Heatmap de correlação de **Spearman** (adequado à assimetria/não-normalidade): removidas `pedido_subtotal` ($\rho = 0{,}997$), `hora` ($\rho = -0{,}945$ / $0{,}864$) e `dia_semana` ($\rho = 0{,}882$), mantendo o par cíclico complementar `hora_sin × hora_cos` ($\rho = -0{,}808$).
   - [x] `VarianceThreshold(threshold=0.01)` nas binárias: removida `tem_pao` (`0,30%`, variância `0,0030 < 0,01`).
 - [x] **Validação da Base Selecionada (`df_model`):** `2.989` linhas × `16` colunas (`15` features + alvo `pagamento_digital`), `0` valores nulos, notebook [trabalho_g2.ipynb](file:///home/lucas/Projects/cd_g2/trabalho_g2.ipynb) executado de ponta a ponta sem erros.
+
+---
+
+## 4. Split Estratificado e `Pipeline` + `ColumnTransformer` (Etapa 4)
+
+- [x] **Separação `X`/`y` e Split Estratificado (80/20):** `X` (`15` features) e `y` (`pagamento_digital`) divididos em `2.391` treino (`40,40%` Digital) e `598` teste (`40,30%` Digital) com índices disjuntos antes de qualquer `.fit()`.
+- [x] **Montagem do `ColumnTransformer` (`preprocessor`) + `criar_pipeline(modelo)`:** 5 grupos cobertos sem duplicatas (`PowerTransformer` em valor/unidades, `StandardScaler` em `qtd_itens`/`hora_sin`/`hora_cos`, `SimpleImputer` como blindagem em todos os ramos, `OrdinalEncoder` em `turno` e `OneHotEncoder(min_frequency=0.05, sparse_output=False)` em `evento_nome`).
+- [x] **Teste de integridade (zero *data leakage*):** validado em `clone(preprocessor)` (`fit_transform` só em `X_train`, `transform` em `X_test`): `15` $\rightarrow$ `22` features (`7` feiras principais + `evento_nome_infrequent_sklearn`), `0` nulos, média `0,000` e std `1,000` no treino transformado.
