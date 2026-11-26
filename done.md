@@ -58,3 +58,26 @@
 - [x] **Separação `X`/`y` e Split Estratificado (80/20):** `X` (`15` features) e `y` (`pagamento_digital`) divididos em `2.391` treino (`40,40%` Digital) e `598` teste (`40,30%` Digital) com índices disjuntos antes de qualquer `.fit()`.
 - [x] **Montagem do `ColumnTransformer` (`preprocessor`) + `criar_pipeline(modelo)`:** 5 grupos cobertos sem duplicatas (`PowerTransformer` em valor/unidades, `StandardScaler` em `qtd_itens`/`hora_sin`/`hora_cos`, `SimpleImputer` como blindagem em todos os ramos, `OrdinalEncoder` em `turno` e `OneHotEncoder(min_frequency=0.05, sparse_output=False)` em `evento_nome`).
 - [x] **Teste de integridade (zero *data leakage*):** validado em `clone(preprocessor)` (`fit_transform` só em `X_train`, `transform` em `X_test`): `15` $\rightarrow$ `22` features (`7` feiras principais + `evento_nome_infrequent_sklearn`), `0` nulos, média `0,000` e std `1,000` no treino transformado.
+
+---
+
+## 5. Baseline, Validação Cruzada e `GridSearchCV` (Etapa 5)
+
+- [x] **Baselines (`StratifiedKFold(5)`, `roc_auc` em `X_train`):** `DummyClassifier` (`0,5000`) e `LogisticRegression` default (`0,6585 ± 0,0301`).
+- [x] **Comparação dos 4 classificadores com `GridSearchCV`:**
+  - [x] **XGBoost (Campeão):** `0,6660 ± 0,0253` (Treino: `0,7443`, `max_depth=3`, `learning_rate=0.05`).
+  - [x] **Random Forest:** `0,6635 ± 0,0237` (Treino: `0,7484`).
+  - [x] **Regressão Logística:** `0,6585 ± 0,0301` (Treino: `0,6756`).
+  - [x] **KNN:** `0,6423 ± 0,0239` (Treino: `0,7238`).
+- [x] **Seleção do campeão:** `campeao_nome = "XGBoost"`, `campeao_pipeline` e `campeao_grade` prontos para a Etapa 6.
+
+---
+
+## 6. Avaliação Final, Nested CV, SHAP e Salvamento (Etapa 6)
+
+- [x] **Avaliação no Teste Hold-Out (`598` pedidos):**
+  - [x] Comparação `ROC-AUC` CV vs Teste sem *overfitting* severo (`diferença < 0,02` em todos): `Random Forest` (`0,6550`), `Regressão Logística` (`0,6507`), `XGBoost` (`0,6485`, acurácia `64%`), `KNN` (`0,6431`).
+  - [x] Exibidos `classification_report`, **Matriz de Confusão** do campeão (`XGBoost`) e **Curva ROC** comparando os 4 modelos.
+- [x] **Nested CV no Campeão (`XGBoost`, 5 externos × 3 internos):** **`ROC-AUC = 0,6616 ± 0,0166` (IC 95%)**, `std = 0,0189`.
+- [x] **Explicabilidade com SHAP (`TreeExplainer`):** gráficos `summary_plot` (barras + *beeswarm*) sobre `X_test` transformado.
+- [x] **Retreino Final e Salvamento:** pipeline completo retreinado em `100%` dos dados (`2.989` pedidos), salvo em `modelo_pagamento_digital_final.pkl` (`133 KB`), recarregado via `joblib.load` e validado em `3` exemplos práticos.
