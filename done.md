@@ -81,3 +81,14 @@
 - [x] **Nested CV no Campeão (`XGBoost`, 5 externos × 3 internos):** **`ROC-AUC = 0,6616 ± 0,0166` (IC 95%)**, `std = 0,0189`.
 - [x] **Explicabilidade com SHAP (`TreeExplainer`):** gráficos `summary_plot` (barras + *beeswarm*) sobre `X_test` transformado.
 - [x] **Retreino Final e Salvamento:** pipeline completo retreinado em `100%` dos dados (`2.989` pedidos), salvo em `modelo_pagamento_digital_final.pkl` (`133 KB`), recarregado via `joblib.load` e validado em `3` exemplos práticos.
+
+---
+
+## 7. Otimização Bayesiana com `Optuna` (Etapa 7)
+
+- [x] Instalado `optuna` (`5.1.0`) e atualizado [requirements.txt](file:///home/lucas/Projects/cd_g2/requirements.txt).
+- [x] Rodado comparativo enxuto (`20` *trials* TPE por modelo em `X_train`, `StratifiedKFold(5)`, `roc_auc`) vs `GridSearchCV`:
+  - `XGBoost`: CV `0,6657` (vs `0,6660`), Teste `0,6447`.
+  - `Random Forest`: CV `0,6626` (vs `0,6635`), Teste `0,6540`.
+  - `Regressão Logística`: CV `0,6585` (vs `0,6585`), Teste `0,6522`.
+  - `KNN`: CV `0,6467` (vs `0,6423`, `+0,0044`), Teste `0,6472`.

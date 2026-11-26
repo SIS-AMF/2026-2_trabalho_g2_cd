@@ -10,3 +10,4 @@ joblib
 jupyter
 ipykernel
 nbconvert
+optuna
